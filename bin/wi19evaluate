@@ -1,109 +1,11 @@
 #!/usr/bin/python
-import json
-import os
-import glob
-import numpy as np
-import sys
 
-def abort(msg):
-    sys.stderr.write("\n{}\nAborting ...\n".format(msg))
-    sys.exit(1)
+import wi19
 
-
-def validate_matrix_is_distance(M):
-    """Validates whether M is a valid distance or similarity matrix.
-
-    :param M: a numpy matrix which is either as distance-matrix or a similarity matrix. If all elements in the diagonal
-        are the greatest ones row and column wise, the matrix is assumed to be a similarity matrix and a distance id
-        they are the smallest values. If neither applies a ValueError is raised.
-    :return:
-    """
-    assert M.shape[0]==M.shape[1] and len(M.shape)==2 and M.shape[0]>2
-    assert np.all(M == M.T)
-
-    min_horiz = np.argmin(M, axis=0)
-    min_vert = np.argmin(M, axis=1)
-    is_min=np.all(min_horiz==min_vert & min_horiz==np.arange(M.shape[0]))
-    if is_min:
-        return True # The matrix is a distance matrix.
-
-    max_horiz = np.argmax(M, axis=0)
-    max_vert = np.argmax(M, axis=1)
-    is_max=np.all(max_horiz==max_vert & max_horiz==np.arange(M.shape[0]))
-    if is_max:
-        return False # The matrix is a similarity matrix.
-
-    raise ValueError("M is neither a distance or similarity matrix")
-
-
-def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,allow_non_existing_samples=False):
-    """Loads a distance matrix and a ground-truth tsv.
-
-
-    :param dm_fname: The file containing the distance matrix of samples of a dataset for evaluation. The file can be
-        either in JSON, CSV, or TSV formats and must have a size of N rows \times N+1 columns. The first column must be
-        the name of each sample. The remaining columns are float numbers with the distance of the sample in the first
-        column and every other sample. The columns represent samples arranged in the same order as the rows.
-    :param gt_fname: The path to the csv file containing the ground-truth specificaly the first column has a filename
-        and the second column the class number.
-    :param allow_similarity: If True, the matrix will be interpreted as a similarity and will be negated.
-    :param allow_missing_samples: If True the samples can be omitted from dm_fname.
-    :param allow_non_existing_samples: If True the samples can have ids that are not mentioned in gt_fname.
-    :return: a tuple containing the distance matrix, a vector with the sample_identities for every row (and column) in
-        the distance matrix, and the a vector with the class id of every sample.
-    """
-    fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
-    if dm_fname.lower().endswith(".json"):
-        str_table=json.load(open(dm_fname))
-    elif dm_fname.lower().endswith(".csv"):
-        lines=open(dm_fname),read().strip().split("\n")
-        str_table=[l.strip().split(",") for l in lines]
-    elif dm_fname.lower().endswith(".tsv"):
-        lines=open(dm_fname),read().strip().split("\n")
-        str_table=[l.strip().split("\t") for l in lines]
-    else:
-        raise ValueError("Unknown file format '.{}' for {}.".format(dm_fname.split(".")[-1],dm_fname))
-    sample_ids=np.array([fname2sample(line[0]) for line in str_table])
-    numerical_table=[[float(col) for col in line[1:]] for line in str_table]
-    numerical_table=np.array(numerical_table,dtype="double")
-    try:
-        is_distance=validate_matrix_is_distance(numerical_table)
-        if is_distance:
-            dm = numerical_table
-        else:
-            if allow_similarity:
-                dm = -numerical_table
-            else:
-                abort("Distance matrix given was in fact a similarity matrix which is not allowed.")
-        del numerical_table
-    except ValueError:
-        abort("Distance matrix is incorrect the diagonal should either contain minimal or maximal values and it should be symmetric.")
-
-    id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
-    id2class_dict={fname2sample(k):int(v) for k,v in id_class_tuples}
-    del id_class_tuples
-
-    if allow_non_existing_samples:
-        # Removing unknown samples both row and column wise
-        keep_idx=np.array([True if sample in id2class_dict.keys() else False for sample in sample_ids])
-        sample_ids=sample_ids[keep_idx]
-        dm = dm[:,keep_idx][keep_idx,:]
-    else:
-        assert set(sample_ids)==set(id2class_dict.keys())
-
-    if allow_missing_samples:
-        if set(sample_ids)!=set(id2class_dict.keys()):
-            abort("{} should contain a row and column for each sample in {}.".format(dm_fname,gt_fname))
-    else: # allow_missing_samples
-        missing=sorted(set(id2class_dict.keys())-set(sample_ids))
-        new_dm=np.ones([len(id2class_dict),len(id2class_dict)])*dm.min()
-        new_dm[:len(sample_ids),:len(sample_ids)]=dm
-        new_sample_ids=np.concatenate([sample_ids,np.array(missing)],axis=0)
-        dm = new_dm
-        del missing
-        del new_dm
-        sample_ids = new_sample_ids
-        del sample_ids
-    classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
-    return dm, sample_ids, classes
-
+p={
+    "gt_csv":"./test_data/gt.csv",
+    "submission_csv": "./test_data/dm.json"
+    #load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,allow_non_existing_samples=False)
+}
+D,_,class_values=wi19.load_dm(p["submission_csv"],p["gt_csv"])
+print wi19.get_map(D,class_values)

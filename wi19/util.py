@@ -87,13 +87,14 @@ def validate_matrix_is_distance(M):
 
     min_horiz = np.argmin(M, axis=0)
     min_vert = np.argmin(M, axis=1)
-    is_min=np.all(min_horiz==min_vert & min_horiz==np.arange(M.shape[0]))
+
+    is_min = np.all((min_horiz==min_vert) & (min_horiz==np.arange(M.shape[0])))
     if is_min:
         return True # The matrix is a distance matrix.
 
     max_horiz = np.argmax(M, axis=0)
     max_vert = np.argmax(M, axis=1)
-    is_max=np.all(max_horiz==max_vert & max_horiz==np.arange(M.shape[0]))
+    is_max=np.all((max_horiz==max_vert) & (max_horiz==np.arange(M.shape[0])))
     if is_max:
         return False # The matrix is a similarity matrix.
 
@@ -144,7 +145,7 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         abort("Distance matrix is incorrect the diagonal should either contain minimal or maximal values and it should be symmetric.")
 
     id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
-    id2class_dict={fname2sample(k):int(v) for k,v in id_class_tuples}
+    id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
     del id_class_tuples
 
     if allow_non_existing_samples:
@@ -167,6 +168,6 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         del missing
         del new_dm
         sample_ids = new_sample_ids
-        del sample_ids
+        del new_sample_ids
     classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
     return dm, sample_ids, classes
