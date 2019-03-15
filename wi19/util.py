@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import sys
 import re
+from collections import defaultdict
 
 
 def get_arg_switches(default_switches, argv=None):
@@ -118,6 +119,15 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         the distance matrix, and the a vector with the class id of every sample.
     """
     fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
+
+
+    id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
+    id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
+    sample_per_class=defaultdict(lambda:[])
+    for k,v in id2class_dict.items:
+        sample_per_class[v].append(k)
+
+
     if dm_fname.lower().endswith(".json"):
         str_table=json.load(open(dm_fname))
     elif dm_fname.lower().endswith(".csv"):
@@ -128,6 +138,16 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         str_table=[l.strip().split("\t") for l in lines]
     else:
         raise ValueError("Unknown file format '.{}' for {}.".format(dm_fname.split(".")[-1],dm_fname))
+
+    try:
+        relevance_estimate = np.array([int(line[1]) for line in str_table],dtype="int64")
+        #removing the relevant_estimate column if successfully parced
+        str_table = [line[:1]+line[2:] for in line str_table]
+    except ValueError:
+        nb_samples=len(str_table)
+        max_item_per_class_count = max([len(v) for v in sample_per_class.values()])
+        relevance_estimate=np.array([max_item_per_class_count]*nb_samples,dtype="int64")
+
     sample_ids=np.array([fname2sample(line[0]) for line in str_table])
     numerical_table=[[float(col) for col in line[1:]] for line in str_table]
     numerical_table=np.array(numerical_table,dtype="double")
@@ -140,19 +160,16 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
                 dm = -numerical_table
             else:
                 abort("Distance matrix given was in fact a similarity matrix which is not allowed.")
-        del numerical_table
     except ValueError:
         abort("Distance matrix is incorrect the diagonal should either contain minimal or maximal values and it should be symmetric.")
 
-    id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
-    id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
-    del id_class_tuples
 
     if allow_non_existing_samples:
-        # Removing unknown samples both row and column wise
+        # Removing samples unknown by the groundtruth both row and column wise
         keep_idx=np.array([True if sample in id2class_dict.keys() else False for sample in sample_ids])
         sample_ids=sample_ids[keep_idx]
         dm = dm[:,keep_idx][keep_idx,:]
+        relevance_estimate = relevance_estimate[keep_idx]
     else:
         assert set(sample_ids)==set(id2class_dict.keys())
 
@@ -160,14 +177,15 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         if set(sample_ids)!=set(id2class_dict.keys()):
             abort("{} should contain a row and column for each sample in {}.".format(dm_fname,gt_fname))
     else: # allow_missing_samples
+        new_relevance_estimate = np.ones(len(id2class_dict)) * max_item_per_class_count
+        new_relevance_estimate[:len(sample_ids)] = relevance_estimate
+        relevance_estimate = new_relevance_estimate
         missing=sorted(set(id2class_dict.keys())-set(sample_ids))
         new_dm=np.ones([len(id2class_dict),len(id2class_dict)])*dm.min()
         new_dm[:len(sample_ids),:len(sample_ids)]=dm
         new_sample_ids=np.concatenate([sample_ids,np.array(missing)],axis=0)
         dm = new_dm
-        del missing
-        del new_dm
         sample_ids = new_sample_ids
-        del new_sample_ids
+
     classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
-    return dm, sample_ids, classes
+    return dm, relevance_estimate, sample_ids, classes
