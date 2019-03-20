@@ -1,7 +1,7 @@
 import jinja2
 import matplotlib as plt
 
-jinja2_template="""
+leaderboard_template="""
 <!DOCTYPE html>
 <html>
 <head>
@@ -79,7 +79,7 @@ for (i = 0; i < coll.length; i++) {
 
 
 if __name__=="__main__":
-    template=jinja2.Template(jinja2_template)
+    template=jinja2.Template(leaderboard_template)
     participants=[
         {
             "name":"Team John Do!",

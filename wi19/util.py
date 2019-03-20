@@ -120,32 +120,33 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     """
     fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
 
-
     id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
     id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
-    sample_per_class=defaultdict(lambda:[])
-    for k,v in id2class_dict.items:
-        sample_per_class[v].append(k)
 
+    sample_per_class=defaultdict(lambda:[])
+    for k,v in id2class_dict.items():
+        sample_per_class[v].append(k)
+    max_item_per_class_count = max([len(v) for v in sample_per_class.values()])
 
     if dm_fname.lower().endswith(".json"):
         str_table=json.load(open(dm_fname))
     elif dm_fname.lower().endswith(".csv"):
-        lines=open(dm_fname),read().strip().split("\n")
+        lines=open(dm_fname).read().strip().split("\n")
         str_table=[l.strip().split(",") for l in lines]
     elif dm_fname.lower().endswith(".tsv"):
-        lines=open(dm_fname),read().strip().split("\n")
+        lines=open(dm_fname).read().strip().split("\n")
         str_table=[l.strip().split("\t") for l in lines]
     else:
         raise ValueError("Unknown file format '.{}' for {}.".format(dm_fname.split(".")[-1],dm_fname))
 
     try:
+        if any([len(line)!=2+len(str_table) for line in str_table]):
+            raise ValueError() # we dont have 2 more columns labels+valid retrivals.
         relevance_estimate = np.array([int(line[1]) for line in str_table],dtype="int64")
         #removing the relevant_estimate column if successfully parced
-        str_table = [line[:1]+line[2:] for in line str_table]
+        str_table = [line[:1]+line[2:] for line in str_table]
     except ValueError:
         nb_samples=len(str_table)
-        max_item_per_class_count = max([len(v) for v in sample_per_class.values()])
         relevance_estimate=np.array([max_item_per_class_count]*nb_samples,dtype="int64")
 
     sample_ids=np.array([fname2sample(line[0]) for line in str_table])
@@ -188,4 +189,4 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         sample_ids = new_sample_ids
 
     classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
-    return dm, relevance_estimate, sample_ids, classes
+    return dm, relevance_estimate.astype("int64"), sample_ids, classes

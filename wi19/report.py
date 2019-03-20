@@ -1,20 +1,22 @@
 from __future__ import print_function
 import jinja2
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import time
 import os
 import glob
 from commands import getoutput as go
 from .util import *
+from .leader_board import leaderboard_template
+from .metrics import get_map,get_classification_metrics
 
 
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
     if roc_svg_path is None:
-        roc_svg_path = submission_file[submission_file.rfind(".")]+"_roc.svg"
+        roc_svg_path = submission_file[:submission_file.rfind(".")]+"_roc.svg"
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
     mAP = get_map(D,classes)
     Fm, P, R, RoC = get_classification_metrics(relevance_estimate, D, classes)
-    plt.plot(RoC["Recall"]*100,RoC["Precision"]*100)
+    plt.plot(RoC["Recall"][1:]*100,RoC["Precision"][1:]*100)
     plt.title("RoC")
     plt.xlabel("Recall %")
     plt.ylabel("Precision %")
@@ -30,7 +32,7 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
 
 def calculate_submissions(submission_file_list,gt_fname,name=None,description_file=None,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,svg_dir_path=None):
     if time_progress_svg_path is None:
-    time_progress_svg_path=submission_file_list[0].split("/")[:-1]+["progress.svg"]
+        time_progress_svg_path=submission_file_list[0].split("/")[:-1]+["progress.svg"]
 
     if name is None:
         name=submission_file_list[0].split("/")[-2]
@@ -95,6 +97,7 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
 
 
     index=np.arange(len(names))
+    fig, ax = plt.subplots()
     rects1 = ax.bar(index, best_maps, bar_width, color='b',label='Best mAP')
     rects2 = ax.bar(index, last_maps, bar_width, color='g', label='Current mAP')
     ax.set_xticks(index + bar_width / 2)
@@ -105,13 +108,13 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     ax.savefig(participants_svg)
 
 
-def print_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
+def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
-    print("Submission created on {}".format(res["date"]))
-    print("Preview RoC in bash:\nfirefox {}\n".format(res["roc_svg"]))
+    print("Submission created on {}".format(submission["date"]))
+    print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
     print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %".format(submission["pr"],submission["rec"],submission["fm"],submission["map"]))
 
 
 if __name__=="__main__":
-    template=jinja2.Template(jinja2_template)
+    template=jinja2.Template(leaderboard_template)
     open("/tmp/index.html","w").write(template.render(participants=participants))
