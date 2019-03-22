@@ -1,13 +1,14 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-def get_d_plus(D):
-    all_vals=np.sort(np.unique(D))
+def _get_d_plus_e(D):
+    higheer_precision_type = {np.half: np.single, np.single: np.double, np.double: np.longdouble}
+    all_vals=np.sort(np.unique(D)).astype(higheer_precision_type.get(D.dtype,np.longdouble))
     return np.min(all_vals[1:]-all_vals[:-1])/2
 
 def get_map(D,classes):
     correct_retrievals = classes[None,:]==classes[:,None]
-    Dp = D+get_d_plus(D)*correct_retrievals
+    Dp = D+_get_d_plus_e(D)*correct_retrievals
     sorted_indexes=np.argsort(Dp,axis=1)
 
     assert np.all(sorted_indexes[:,0]==np.arange(sorted_indexes.shape[0])) # TODO(anguelos) remove samity check
@@ -30,10 +31,11 @@ def get_map(D,classes):
     return mAP
 
 
-def _get_sorted_retrievals(D,classes,remove_self_column=True):
+def _get_sorted_retrievals(D,classes,remove_self_column=True,apply_e=False):
     correct_retrievals = classes[None, :] == classes[:, None]
-    Dp = D+get_d_plus(D)*correct_retrievals
-    sorted_indexes=np.argsort(Dp,axis=1)
+    if apply_e:
+        D = D+_get_d_plus_e(D)*correct_retrievals
+    sorted_indexes=np.argsort(D,axis=1)
     if remove_self_column:
         sorted_indexes=sorted_indexes[:,1:] # removing self
     sorted_retrievals = correct_retrievals[np.arange(sorted_indexes.shape[0], dtype="int64")[:, None], sorted_indexes]
@@ -46,15 +48,21 @@ def _get_precision_recall_matrices(D, classes, remove_self_column = True):
     precision_at = np.cumsum(sorted_retrievals,axis=1).astype("float") / np.cumsum(np.ones_like(sorted_retrievals),axis=1)
     recall_at = np.cumsum(sorted_retrievals, axis=1).astype("float") / np.maximum(relevant_count, 1)
     recall_at[relevant_count.reshape(-1) == 0, :] = 1
-    return precision_at, recall_at
+    return precision_at, recall_at, sorted_retrievals
+
 
 def _compute_map(precision_at,sorted_retrievals):
+    #Removing singleton queries from mAP computation
+    valid_entries = sorted_retrievals.sum(axis=1)>0
+    precision_at=precision_at[valid_entries,:]
+    sorted_retrievals=sorted_retrievals[valid_entries,:]
     AP = (precision_at*sorted_retrievals).sum(axis=1)/sorted_retrievals.sum(axis=1)
     return AP.mean()
 
+
 def _compute_fscore(sorted_retrievals,relevant_estimate):
-    idx=np.arange(relevant_estimate.size,dtype="int64")
-    tp=float(sorted_retrievals.cumsum(axis=1)[idx,relevant_estimate].sum())
+    relevant_mask = np.cumsum(np.ones_like(sorted_retrievals),axis=1) <= relevant_estimate.reshape(-1,1)
+    tp=float((sorted_retrievals*relevant_mask).sum())
     retrieved=relevant_estimate.sum()
     relevant=sorted_retrievals.sum()
     precision=tp/retrieved
@@ -63,40 +71,30 @@ def _compute_fscore(sorted_retrievals,relevant_estimate):
     return fscore, precision, recall
 
 
-def get_classification_metrics(stop_indexes,D,classes,remove_self_column=True):
-    P_at, R_at = get_precision_recall_matrices(D, classes, remove_self_column=remove_self_column)
-    nb_queries = D.shape[0]
-    #correct_retrievals = classes[None,:]==classes[:,None]
-    #Dp = D+get_d_plus(D)*correct_retrievals
-    #sorted_indexes=np.argsort(Dp,axis=1)
+def _compute_roc(sorted_retrievals):
+    true_positives=sorted_retrievals.sum(axis=0).cumsum().astype("double")
+    relevant=np.ones_like(true_positives)*sorted_retrievals.sum()
+    retrieved=np.arange(1,sorted_retrievals.shape[1]+1)*sorted_retrievals.shape[0]
+    precisions=true_positives / retrieved
+    recalls = true_positives / relevant
+    return {"precision":np.array(precisions),"recall":np.array(recalls)}
 
-    #assert np.all(sorted_indexes[:,0]==np.arange(sorted_indexes.shape[0])) # TODO(anguelos) remove samity check
 
-    # not removing singletons as queries
+def get_all_metrics(relevant_estimate,D,query_classes,remove_self_column=True, db_classes=None):
+    """Computes all performance metrics.
 
-    #sorted_indexes=sorted_indexes[:,1:] # removing self
-    #print sorted_indexes.shape
-    #sorted_retrievals = correct_retrievals[np.arange(sorted_indexes.shape[0],dtype="int64")[:, None], sorted_indexes]
-    #sorted_retrievals=sorted_retrievals[:,1:]
-
-    #relevant_count=sorted_retrievals.sum(axis=1).reshape(-1,1)
-
-    #P_at=np.cumsum(sorted_retrievals,axis=1).astype("float") / np.cumsum(np.ones_like(sorted_retrievals),axis=1)
-    #R_at = np.cumsum(sorted_retrievals, axis=1).astype("float") / np.maximum(relevant_count,1)
-
-    # If there are no relevant items and the user replied none, he gets 100% for the query
-    #print R_at.shape
-    #P_at = np.concatenate([relevant_count == 0,P_at],axis=1)
-    #R_at = np.concatenate([relevant_count == 0, R_at], axis=1)
-    # When there are no relevant items, Recall is always 100 %
-    #R_at[relevant_count.reshape(-1) == 0,:] = 1
-    print R_at.shape
-    plt.plot(P_at.mean(axis=0))*100;plt.plot(R_at.mean(axis=0));plt.show()
-
-    P_by_query=P_at[np.arange(nb_queries,dtype="int64"),stop_indexes]
-    R_by_query=R_at[np.arange(nb_queries,dtype="int64"),stop_indexes]
-    P = P_by_query.mean()
-    R = R_by_query.mean()
-    Fm = (2*P*R)/(P+R)
-    RoC={"Precision":P_at.mean(axis=0),"Recall":R_at.mean(axis=0)}
-    return Fm,P,R,RoC
+    :param relevant_estimate: an np.array with an integer estimate of how many retrieved samples are relevant for every
+        query.
+    :param D: the distance matrix between each query and each sample in the retrieval database.
+    :param query_classes: The class labels of each query.
+    :param remove_self_column: If the queries are in the retrieval database and must be excluded, this should be True.
+    :param db_classes: If None, the columns are assumed to be same class as the rows.
+    :return: a tuple with four scalar performance estimates mAP,fscore,precision,recall, and a dictionary containing the
+        two array needed for ploting roc.
+    """
+    assert db_classes is None
+    precision_at, recall_at, sorted_retrievals = _get_precision_recall_matrices(D,query_classes,remove_self_column=remove_self_column)
+    mAP= _compute_map(precision_at,sorted_retrievals)
+    fscore, precision, recall = _compute_fscore(sorted_retrievals,relevant_estimate)
+    roc = _compute_roc(sorted_retrievals)
+    return mAP,fscore,precision,recall,roc

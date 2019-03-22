@@ -7,27 +7,29 @@ import glob
 from commands import getoutput as go
 from .util import *
 from .leader_board import leaderboard_template
-from .metrics import get_map,get_classification_metrics
+from .metrics import get_all_metrics
 
 
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
-    if roc_svg_path is None:
-        roc_svg_path = submission_file[:submission_file.rfind(".")]+"_roc.svg"
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
-    mAP = get_map(D,classes)
-    Fm, P, R, RoC = get_classification_metrics(relevance_estimate, D, classes)
-    plt.plot(RoC["Recall"][1:]*100,RoC["Precision"][1:]*100)
-    plt.title("RoC")
-    plt.xlabel("Recall %")
-    plt.ylabel("Precision %")
-    plt.savefig(roc_svg_path)
-    res={"date":time.ctime(os.path.getctime(submission_file))}
-    res["timestamp"]=os.path.getctime(submission_file)
+    #mAP = get_map(D,classes)
+    #def get_all_metrics(relevant_estimate,D,query_classes,remove_self_column=True, db_classes=None):
+    mAP, Fm, P, R, RoC = get_all_metrics(relevance_estimate, D, classes)
+    res = {"date": time.ctime(os.path.getctime(submission_file))}
+    res["timestamp"] = os.path.getctime(submission_file)
     res["map"] = mAP
     res["pr"] = P
     res["rec"] = R
     res["fm"] = Fm
-    res["roc_svg"]=roc_svg_path
+    if roc_svg_path is not None:
+        plt.plot(RoC["recall"][1:]*100,RoC["precision"][1:]*100)
+        plt.title("RoC")
+        plt.xlabel("Recall %")
+        plt.ylabel("Precision %")
+        plt.savefig(roc_svg_path)
+        res["roc_svg"]=roc_svg_path
+    else:
+        res["roc_svg"] = "N/A"
     return res
 
 def calculate_submissions(submission_file_list,gt_fname,name=None,description_file=None,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,svg_dir_path=None):
@@ -108,7 +110,9 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     ax.savefig(participants_svg)
 
 
-def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
+def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):
+    if roc_svg_path == "":
+        roc_svg_path = None
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
     print("Submission created on {}".format(submission["date"]))
     print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
