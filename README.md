@@ -5,13 +5,22 @@
 pip install --user --upgrade git+https://github.com/anguelos/dagtasets
 ```
 
-### Evaluate: 
+### Evaluate:
+```bash
+#print help
+./bin/wi19evaluate -h
+# on run data:
+./bin/wi19evaluate -submission_csv=./test_data/dm.json -gt_csv=./test_data/gt.csv
+ 
+``` 
  
 ### Leaderboard:
 [curent leaderboard](https://anguelos.github.io/wi19_evaluate/)
 
 
 ```bash
+#!/bin/bash
+
 GITROOT="/home/anguelos/work/src/wi19_evaluate/"
 OUTPUT_ROOT="${GITROOT}/docs/"
 USER_DIRS="/home/anguelos/work/src/wi19_evaluate/test_data/test_leaderboard/team*"
@@ -31,8 +40,8 @@ done
        "-gt_csv=${GROUNDTRUTH}"
 
 
-git "--git-dir=${GITROOT}.git" add "${OUTPUT_ROOT}/index.html" \
-    "${OUTPUT_ROOT}"/svg/*.svg
-git "--git-dir=${GITROOT}.git" commit -m "Auto Update"
-git "--git-dir=${GITROOT}.git" push
+cd ${GITROOT}
+git  add docs/index.html docs/svg/*.svg
+git  commit -m "Auto Update"
+git  push
 ```
