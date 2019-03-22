@@ -5,13 +5,30 @@
 pip install --user --upgrade git+https://github.com/anguelos/dagtasets
 ```
 
+### Submission Format
+
+Submissions must be in csv form as [here](https://github.com/anguelos/wi19_evaluate/blob/master/test_data/test_leaderboard/team_1/0004200862.csv).
+* No header row.
+* For N samples (image files),
+* N rows
+* N+1 or N+2 columns
+* The relevance column is optional and is required to estimate classification metrics.
+* No quoted values
+* Sample names should be the filenames of each image.
+
+| Sample Name   | Relevant Estimate   | Sample1   | Sample2   | Sample3   |
+| ------------- |:-------------------:|:---------:|:---------:|:---------:|
+| s1.jpg        | 1                   | 0.0       | 0.7       | 0.9       |
+| s2.jpg        | 2                   | 0.7       | 0.0       | 1.9       |
+| s3.jpg        | 2                   | 0.9       | 1.9       | 0.0       |
+
+
 ### Evaluate:
 ```bash
 #print help
 ./bin/wi19evaluate -h
 # on run data:
-./bin/wi19evaluate -submission_csv=./test_data/dm.json -gt_csv=./test_data/gt.csv
- 
+./bin/wi19evaluate -submission_csv=dm.csv -gt_csv=gt.csv 
 ``` 
  
 ### Leaderboard:
