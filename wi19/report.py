@@ -9,6 +9,7 @@ from .util import *
 from .leader_board import leaderboard_template
 import hashlib
 from .metrics import get_all_metrics
+import datetime
 
 def clean_svg_path(p):
     return "./svg/{}".format(p.split("/")[-1])
@@ -80,6 +81,7 @@ def calculate_submissions(submission_file_list,gt_fname,name=None,description_fi
 
 
 def calculate_participants(participant_dir_list,gt_fname,out_dir):
+    initial_time=time.time()
     svg_dir=out_dir+"./svg/"
     go("mkdir -p "+svg_dir) # TODO (anguelos) remove svg_dir
     participants=[]
@@ -120,7 +122,7 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     ax.legend()
     participants_svg="{}{}".format(svg_dir, "participants.svg")
     fig.savefig(participants_svg)
-    return {"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
+    return {"date":datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),"duartion":time.time()-initial_time,"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
 
 
 def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):

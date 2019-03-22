@@ -64,6 +64,14 @@ tr:hover {background-color: #e5e5e5;}
 </div>
 {% endfor %}
 
+<div class="footer">
+Report compiled in {{all_participants['duartion']|round(5, 'floor')}} sec.
+<br>
+Report compiled on {{all_participants['date'] }}.
+<br>
+Utility writen by anguelos (dot) nicolaou (at) gmail (dot) com <a href="https://github.com/anguelos/wi19_evaluate">source code</a>
+</div>
+
 
 <script>
 var coll = document.getElementsByClassName("collapsible");
