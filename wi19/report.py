@@ -9,6 +9,8 @@ from .util import *
 from .leader_board import leaderboard_template
 from .metrics import get_all_metrics
 
+def readable_name(name):
+    return " ".join([n.capitalize() for n in name.split("_") if n.lower() != "team"])
 
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
@@ -22,10 +24,11 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
     res["rec"] = R
     res["fm"] = Fm
     if roc_svg_path is not None:
-        plt.plot(RoC["recall"][1:]*100,RoC["precision"][1:]*100)
+        plt.clf()
+        plt.plot(RoC["fallout"]*100,RoC["recall"]*100)
         plt.title("RoC")
-        plt.xlabel("Recall %")
-        plt.ylabel("Precision %")
+        plt.ylabel("Recall (TPR) %")
+        plt.xlabel("False Positive Rate %")
         plt.savefig(roc_svg_path)
         res["roc_svg"]=roc_svg_path
     else:
@@ -33,9 +36,6 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
     return res
 
 def calculate_submissions(submission_file_list,gt_fname,name=None,description_file=None,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,svg_dir_path=None):
-    if time_progress_svg_path is None:
-        time_progress_svg_path=submission_file_list[0].split("/")[:-1]+["progress.svg"]
-
     if name is None:
         name=submission_file_list[0].split("/")[-2]
     time_progress_svg_path = roc_svg_path="{}/{}_progress.svg".format(svg_dir_path,name)
@@ -53,14 +53,15 @@ def calculate_submissions(submission_file_list,gt_fname,name=None,description_fi
                                           allow_non_existing_samples=allow_non_existing_samples,
                                           roc_svg_path=roc_svg_path)
         submission_list.append(submission)
-    reversed_submissions = sorted(submission_list, lambda x: x["timestamp"], reverse=True)
+    reversed_submissions = sorted(submission_list,key=lambda x: x["timestamp"], reverse=True)
     np_map=np.array([s["map"] for s in reversed_submissions])
     np_pr = np.array([s["pr"] for s in reversed_submissions])
     np_rec = np.array([s["rec"] for s in reversed_submissions])
     np_fm = np.array([s["fm"] for s in reversed_submissions])
     np_dates=np.array([s["date"] for s in reversed_submissions])
     np_timestamps = np.array([s["timestamp"] for s in reversed_submissions])
-    plt.plot(np_pr[::-1],label="Precision")
+    fig, ax = plt.subplots()
+    plt.plot(np_pr[::-1],label="Fallout")
     plt.plot(np_rec[::-1],label="Recall")
     plt.plot(np_fm[::-1],label= "F-Score")
     plt.plot(np_map[::-1],label= "mAP")
@@ -82,32 +83,42 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     last_maps = []
     names=[]
     for participant_dir in participant_dir_list:
-        name=participant_dir.split("/")[-1]
-        filenames=glob.glob(participant_dir+"/*tsv")+glob.glob(participant_dir+"/*csv")+glob.glob(participant_dir+"/*json")
+        name = [p for p in participant_dir.split("/") if len(p)][-1]
+        filenames=glob.glob(participant_dir+"/*tsv")+glob.glob(participant_dir+"/*csv")#+glob.glob(participant_dir+"/*json")
         description_path=glob.glob(participant_dir+"/description")
         if len(description_path)==1:
             description_path=description_path[0]
         else:
             description_path = None
-        submissions=calculate_submissions(filenames, gt_fname,name=name,description_file=description_path,svg_dir_path=svg_dir)
-        maps=[s["map"] for s in submissions]
-        participant={"submissions":submissions,"name":name,"best_map":max(maps)}
-        best_maps.append(max(maps))
-        last_maps.append(maps[0])
-        names.append(names)
+        report=calculate_submissions(filenames, gt_fname,name=name,description_file=description_path,svg_dir_path=svg_dir)
+        print(repr(report))
+        print(participant_dir)
+        maps=[s["map"] for s in report["submissions"]]
+        if maps==[]:
+            maps=["N/A"]
+            best_maps.append("N/A")
+            last_maps.append("N/A")
+        else:
+            best_maps.append(max(maps))
+            last_maps.append(maps[0])
+        participant={"submissions":report["submissions"],"name":readable_name(name),"best_map":max(maps)}
+        names.append(readable_name(name))
         participants.append(participant)
 
-
     index=np.arange(len(names))
+    plt.clf()
     fig, ax = plt.subplots()
-    rects1 = ax.bar(index, best_maps, bar_width, color='b',label='Best mAP')
-    rects2 = ax.bar(index, last_maps, bar_width, color='g', label='Current mAP')
+    bar_width = 0.35
+    _ = ax.bar(index, best_maps, bar_width, color='b',label='Best mAP')
+    _ = ax.bar(index+bar_width, last_maps, bar_width, color='g', label='Current mAP')
     ax.set_xticks(index + bar_width / 2)
+    plt.xticks(rotation=30)
     ax.set_xticklabels(names)
-    ax.title("Leaderboard")
+    ax.set_title("Leaderboard")
     ax.legend()
     participants_svg="{}{}".format(svg_dir, "participants.svg")
-    ax.savefig(participants_svg)
+    fig.savefig(participants_svg)
+    return {"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":participants_svg,"participants":participants}
 
 
 def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):

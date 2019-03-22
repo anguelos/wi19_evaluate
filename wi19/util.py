@@ -118,6 +118,7 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     :return: a tuple containing the distance matrix, a vector with the sample_identities for every row (and column) in
         the distance matrix, and the a vector with the class id of every sample.
     """
+    print "Loading submission {} with groundtruth {} ... ".format(dm_fname, gt_fname),
     fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
 
     id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
@@ -189,4 +190,5 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         sample_ids = new_sample_ids
 
     classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
+    print " done."
     return dm, relevance_estimate.astype("int64"), sample_ids, classes
