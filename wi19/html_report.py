@@ -54,7 +54,10 @@ tr:hover {background-color: #e5e5e5;}
     <div class="content">
         <img src="{{submission['roc_svg']}}"/>
         </table>
-        <tr><td></td><td></td><td></td><td></td></tr>
+        <tr> <td>mAP:</td> <td>{{100*submission['map']|round(4, 'floor')}}</td> </tr>
+        <tr> <td>Precision:</td> <td>{{100*submission['pr']|round(4, 'floor')}}</td> </tr>
+        <tr> <td>Recall:</td> <td>{{100*submission['rec']|round(4, 'floor')}}</td> </tr>
+        <tr> <td>F-score:</td> <td>{{100*submission['fm']|round(4, 'floor')}}</td> </tr>
         </table>
     </div>
     {% endfor %}
@@ -84,7 +87,7 @@ for (i = 0; i < coll.length; i++) {
 
 def render_leaderboard(root,all_participants):
     template = jinja2.Template(leaderboard_template)
-    open("{}/svg/index.html".format(root), "w").write(template.render(all_participants=all_participants))
+    open("{}/index.html".format(root), "w").write(template.render(all_participants=all_participants))
 
 def render_submission(root,submission):
     raise NotImplementedError()

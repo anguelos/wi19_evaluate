@@ -7,7 +7,11 @@ import glob
 from commands import getoutput as go
 from .util import *
 from .leader_board import leaderboard_template
+import hashlib
 from .metrics import get_all_metrics
+
+def clean_svg_path(p):
+    return "./svg/{}".format(p.split("/")[-1])
 
 def readable_name(name):
     return " ".join([n.capitalize() for n in name.split("_") if n.lower() != "team"])
@@ -30,7 +34,7 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
         plt.ylabel("Recall (TPR) %")
         plt.xlabel("False Positive Rate %")
         plt.savefig(roc_svg_path)
-        res["roc_svg"]=roc_svg_path
+        res["roc_svg"]=clean_svg_path(roc_svg_path)
     else:
         res["roc_svg"] = "N/A"
     return res
@@ -46,7 +50,7 @@ def calculate_submissions(submission_file_list,gt_fname,name=None,description_fi
 
     submission_list=[]
     for submission_file in submission_file_list:
-        roc_svg_path="{}/{}_{}_roc.svg".format(svg_dir_path,name,np.random.randint(1000000,9999999))
+        roc_svg_path="{}/{}_{}_roc.svg".format(svg_dir_path,name,hashlib.md5(submission_file).hexdigest())
         submission = calculate_submission(submission_file=submission_file, gt_fname=gt_fname,
                                           allow_similarity=allow_similarity,
                                           allow_missing_samples=allow_missing_samples,
@@ -76,7 +80,7 @@ def calculate_submissions(submission_file_list,gt_fname,name=None,description_fi
 
 
 def calculate_participants(participant_dir_list,gt_fname,out_dir):
-    svg_dir=out_dir+"/svg/"
+    svg_dir=out_dir+"./svg/"
     go("mkdir -p "+svg_dir) # TODO (anguelos) remove svg_dir
     participants=[]
     best_maps=[]
@@ -91,8 +95,6 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
         else:
             description_path = None
         report=calculate_submissions(filenames, gt_fname,name=name,description_file=description_path,svg_dir_path=svg_dir)
-        print(repr(report))
-        print(participant_dir)
         maps=[s["map"] for s in report["submissions"]]
         if maps==[]:
             maps=["N/A"]
@@ -118,7 +120,7 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     ax.legend()
     participants_svg="{}{}".format(svg_dir, "participants.svg")
     fig.savefig(participants_svg)
-    return {"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":participants_svg,"participants":participants}
+    return {"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
 
 
 def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):
@@ -128,8 +130,3 @@ def print_single_submission_report(submission_file,gt_fname,allow_similarity=Tru
     print("Submission created on {}".format(submission["date"]))
     print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
     print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %".format(submission["pr"],submission["rec"],submission["fm"],submission["map"]))
-
-
-if __name__=="__main__":
-    template=jinja2.Template(leaderboard_template)
-    open("/tmp/index.html","w").write(template.render(participants=participants))
