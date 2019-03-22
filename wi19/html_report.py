@@ -53,6 +53,9 @@ tr:hover {background-color: #e5e5e5;}
     <button class="collapsible">{{submission['date']}}   mAP: <b>{{100*submission['map']|round(4, 'floor')}} %</b></button>
     <div class="content">
         <img src="{{submission['roc_svg']}}"/>
+        </table>
+        <tr><td></td><td></td><td></td><td></td></tr>
+        </table>
     </div>
     {% endfor %}
 </div>
