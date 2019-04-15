@@ -1,0 +1,3 @@
+[submodule "srslbp/bilde"]
+	path = srslbp/bilde
+	url = https://github.com/anguelos/bilde

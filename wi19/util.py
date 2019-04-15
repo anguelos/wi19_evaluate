@@ -86,15 +86,19 @@ def validate_matrix_is_distance(M):
     assert M.shape[0]==M.shape[1] and len(M.shape)==2 and M.shape[0]>2
     assert np.all(M == M.T)
 
-    min_horiz = np.argmin(M, axis=0)
-    min_vert = np.argmin(M, axis=1)
+    # In order to tolerate zero distance outside the diagonal, this e is added.
+    e = .00000000000001
+    sz = M.shape[0]
+
+    min_horiz = np.argmin(M - np.eye(sz) * e, axis=0)
+    min_vert = np.argmin(M - np.eye(sz) * e, axis=1)
 
     is_min = np.all((min_horiz==min_vert) & (min_horiz==np.arange(M.shape[0])))
     if is_min:
         return True # The matrix is a distance matrix.
 
-    max_horiz = np.argmax(M, axis=0)
-    max_vert = np.argmax(M, axis=1)
+    max_horiz = np.argmax(M + np.eye(sz) * e, axis=0)
+    max_vert = np.argmax(M + np.eye(sz) * e, axis=1)
     is_max=np.all((max_horiz==max_vert) & (max_horiz==np.arange(M.shape[0])))
     if is_max:
         return False # The matrix is a similarity matrix.
