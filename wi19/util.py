@@ -177,6 +177,8 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
         dm = dm[:,keep_idx][keep_idx,:]
         relevance_estimate = relevance_estimate[keep_idx]
     else:
+        print (len(id2class_dict.keys()))
+        print (len(sample_ids))
         assert set(sample_ids)==set(id2class_dict.keys())
 
     if allow_missing_samples:

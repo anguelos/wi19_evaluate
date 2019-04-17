@@ -1,12 +1,9 @@
 from __future__ import print_function
-import jinja2
 import matplotlib.pyplot as plt
 import time
-import os
-import glob
 from commands import getoutput as go
 from .util import *
-from .leader_board import leaderboard_template
+
 import hashlib
 from .metrics import get_all_metrics
 import datetime
@@ -19,8 +16,6 @@ def readable_name(name):
 
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
-    #mAP = get_map(D,classes)
-    #def get_all_metrics(relevant_estimate,D,query_classes,remove_self_column=True, db_classes=None):
     mAP, Fm, P, R, RoC = get_all_metrics(relevance_estimate, D, classes)
     res = {"date": time.ctime(os.path.getctime(submission_file))}
     res["timestamp"] = os.path.getctime(submission_file)
@@ -34,6 +29,7 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
         plt.title("RoC")
         plt.ylabel("Recall (TPR) %")
         plt.xlabel("False Positive Rate %")
+        plt.gcf().patch.set_alpha(0.0)
         plt.savefig(roc_svg_path)
         res["roc_svg"]=clean_svg_path(roc_svg_path)
     else:
@@ -76,11 +72,12 @@ def calculate_submissions(submission_file_list,gt_fname,name=None,description_fi
     plt.ylabel("Performance %")
     plt.xlabel("Time")
     plt.savefig(time_progress_svg_path)
-    res={"submissions":reversed_submissions,"name":name,"description":description,"best_map":np_map.max()}
+    res={"submissions":reversed_submissions,"name":name,"best_map":np_map.max()}
     return res
 
 
 def calculate_participants(participant_dir_list,gt_fname,out_dir):
+    print("Participants",participant_dir_list)
     initial_time=time.time()
     svg_dir=out_dir+"./svg/"
     go("mkdir -p "+svg_dir) # TODO (anguelos) remove svg_dir
@@ -91,7 +88,7 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     for participant_dir in participant_dir_list:
         name = [p for p in participant_dir.split("/") if len(p)][-1]
         filenames=glob.glob(participant_dir+"/*tsv")+glob.glob(participant_dir+"/*csv")#+glob.glob(participant_dir+"/*json")
-        description_path=glob.glob(participant_dir+"/description")
+        description_path=(glob.glob(participant_dir+"/*README*")+glob.glob(participant_dir+"/description"))
         if len(description_path)==1:
             description_path=description_path[0]
         else:
@@ -105,24 +102,27 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
         else:
             best_maps.append(max(maps))
             last_maps.append(maps[0])
-        participant={"submissions":report["submissions"],"name":readable_name(name),"best_map":max(maps)}
+        participant={"submissions":report["submissions"],"name":readable_name(name),"best_map":max(maps),"description":open(description_path).read()}
         names.append(readable_name(name))
         participants.append(participant)
 
     index=np.arange(len(names))
     plt.clf()
     fig, ax = plt.subplots()
+    fig.set_size_inches(10, 6)
+    fig.patch.set_alpha(0.0)
     bar_width = 0.35
     _ = ax.bar(index, best_maps, bar_width, color='b',label='Best mAP')
     _ = ax.bar(index+bar_width, last_maps, bar_width, color='g', label='Current mAP')
     ax.set_xticks(index + bar_width / 2)
     plt.xticks(rotation=30)
     ax.set_xticklabels(names)
-    ax.set_title("Leaderboard")
+    ax.set_title("ICDAR 2019 Writer Identification Leaderboard")
+    ax.autoscale(enable=True, axis='both', tight=False)
     ax.legend()
     participants_svg="{}{}".format(svg_dir, "participants.svg")
     fig.savefig(participants_svg)
-    return {"date":datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),"duartion":time.time()-initial_time,"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
+    return {"date":datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),"duration":time.time()-initial_time,"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
 
 
 def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):

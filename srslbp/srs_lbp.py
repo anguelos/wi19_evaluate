@@ -50,11 +50,22 @@ def hellinger_normalise(values):
 def l2_normalise(values):
     return values/((np.sum(values**2,1)**.5)+.00000000000001)[:,None]
 
-def pca_reduce(values,pca_values=None,n_components=200):
-    if pca_values is None:
+def pca_reduce(values,pca_values=None,n_components=200,l1out=False):
+    pca = sklearn.decomposition.PCA(copy=True, n_components=n_components)
+    if l1out:
+        res = np.zeros_like(pca.fit(values).transform(values))
+        for k in range(res.shape[0]):
+            idx = np.arange(res.shape[0]) != k
+            res[k, :] = pca.fit(values[idx, :]).transform(values[~idx, :])
+            sys.stderr.write(".")
+            sys.stderr.flush()
+        sys.stderr.write("\n")
+        sys.stderr.flush()
+        return res
+
+    if pca_values is None or pca_values is values:
         pca_values = values
-    pca = sklearn.decomposition.PCA(copy=True,n_components=n_components)
-    return pca.fit(values).transform(values)
+    return pca.fit(pca_values).transform(values)
 
 def print_values_dist(values,fnames,metric="cityblock"):
     compressed_distmat=scipy.spatial.distance.pdist(values,metric=metric)
@@ -67,20 +78,20 @@ def print_values_dist(values,fnames,metric="cityblock"):
 
 
 
-def pipeline(validation_values,pcaset_values,n_components=200):
+def pipeline(validation_values,pcaset_values,n_components=200,l1out=False):
     validation_values=block_normalise(validation_values)
     pcaset_values = block_normalise(pcaset_values)
-    validation_values=pca_reduce(validation_values,pca_values=pcaset_values,n_components=n_components)
+    validation_values=pca_reduce(validation_values,pca_values=pcaset_values,n_components=n_components,l1out=l1out)
     validation_values=hellinger_normalise(validation_values)
     validation_values=l2_normalise(validation_values)
     return validation_values
 
 if __name__ == "__main__":
-    params = {"validation_csv": "", "pca_csv": "{validation_csv}","output":"stdout","nb_components":200,"metric":"cityblock"}
+    params = {"validation_csv": "", "pca_csv": "{validation_csv}","output":"stdout","nb_components":200,"metric":"cityblock","l1out":0}
     params,_ = wi19.get_arg_switches(params)
     validation_values,validation_fnames=read_csv(params["validation_csv"])
     pca_values,_=read_csv(params["pca_csv"])
-    validation_values=pipeline(validation_values,pca_values)
+    validation_values=pipeline(validation_values,pca_values,l1out=params["l1out"])
     out_csv=print_values_dist(validation_values,validation_fnames,metric=params["metric"])
     if params["output"]=="stdout":
         print(out_csv)
