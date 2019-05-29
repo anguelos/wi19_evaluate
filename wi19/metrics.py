@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 
 
 def _get_d_plus_e(D):
+    return D.astype("float")
     higheer_precision_type = {
         np.half: np.single,
         np.single: np.double,
