@@ -130,7 +130,7 @@ def get_all_metrics(
     del D
     accuracy = precision_at[:,0].mean()
     mAP = _compute_map(precision_at, sorted_retrievals)
-    del precision_at,recall_at,
+    del precision_at#,recall_at,
     fscore, precision, recall = _compute_fscore(
         sorted_retrievals, relevant_estimate)
     roc = _compute_roc(sorted_retrievals)
