@@ -106,7 +106,7 @@ def validate_matrix_is_distance(M):
     raise ValueError("M is neither a distance or similarity matrix")
 
 
-def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,allow_non_existing_samples=False):
+def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,allow_non_existing_samples=True):
     """Loads a distance matrix and a ground-truth tsv.
 
 
