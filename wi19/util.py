@@ -130,10 +130,11 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
 
     dm=[]
     fnames=[]
-    for line in open(dm_fname).read().strip().split("\n"):
-        line=line.split(",")
-        fnames.append(fname2sample(line[0]))
-        dm.append([float(col) for col in line[1:]])
+    for line in open(dm_fname).readlines():
+        if(len(line.strip())>0):
+            line=line.split(",")
+            fnames.append(fname2sample(line[0]))
+            dm.append([float(col) for col in line[1:]])
     dm=np.array(dm,"float")
     fnames=np.array(fnames)
     assert dm.shape[0]==dm.shape[1]
