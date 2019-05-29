@@ -17,7 +17,7 @@ def clean_csv_path(p):
 def readable_name(name):
     return " ".join([n.capitalize() for n in name.split("_") if n.lower() != "team"])
 
-def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
+def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=True,roc_svg_path=None):
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
     mAP, Fm, P, R, RoC, accuracy, recall_at = get_all_metrics(relevance_estimate, D, classes)
     res = {"date": time.ctime(os.path.getctime(submission_file))}
