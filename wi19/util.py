@@ -128,7 +128,28 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     id_class_tuples=[reversed(l.split(",")) for l in open(gt_fname).read().strip().split("\n")]
     id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
 
+    dm=[]
+    fnames=[]
+    for line in open(dm_fname).read().strip().split("\n"):
+        line=line.split(",")
+        fnames.append(fname2sample(line[0]))
+        dm.append([float(col) for col in line[1:]])
+    dm=np.array(dm,"float")
+    fnames=np.array(fnames)
+    assert dm.shape[0]==dm.shape[1]
+    if len(id2class_dict)!=fnames.shape[0]:
+        keep_idx=[]
+        for n in range(fnames.shape[0]):
+            keep_idx.append(fnames[n] in id2class_dict.keys())
+        keep_idx=np.array(keep_idx)>0
+        print keep_idx.mean()
+        fnames=fnames[keep_idx]
+        dm=dm[:,keep_idx][keep_idx,:]
+    classes=np.array([id2class_dict[n] for n in fnames.tolist()])
+    return dm, np.ones_like(fnames).astype("int32")*5, fnames, classes
+
     sample_per_class=defaultdict(lambda:[])
+
     for k,v in id2class_dict.items():
         sample_per_class[v].append(k)
     max_item_per_class_count = max([len(v) for v in sample_per_class.values()])
