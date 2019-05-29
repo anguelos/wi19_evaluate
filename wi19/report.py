@@ -140,4 +140,4 @@ def print_single_submission_report(submission_file,gt_fname,allow_similarity=Tru
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
     print("Submission created on {}".format(submission["date"]))
     print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
-    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %\nAcc.: {:5,3}".format(submission["pr"],submission["rec"],submission["fm"],submission["map"],submission["acc"]))
+    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %\nAcc.: {:5.3}".format(submission["pr"],submission["rec"],submission["fm"],submission["map"],submission["acc"]))
