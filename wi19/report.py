@@ -133,7 +133,7 @@ def calculate_participants(participant_dir_list,gt_fname,out_dir):
     return {"date":datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"),"duration":time.time()-initial_time,"names":names,"best_maps":best_maps,"last_maps":last_maps,"participants_svg":clean_svg_path(participants_svg),"participants":participants}
 
 
-def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=""):
+def print_single_submission_report(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=True,roc_svg_path=""):
     if roc_svg_path == "":
         roc_svg_path = None
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
