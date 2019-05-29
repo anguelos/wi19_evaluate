@@ -31,7 +31,7 @@ def get_map(D, classes):
 
     sorted_indexes = sorted_indexes[:, 1:]  # removing self
     sorted_retrievals = correct_retrievals[np.arange(
-        sorted_indexes.shape[0], dtype="int64")[:, None], sorted_indexes]
+        sorted_indexes.shape[0], dtype="int32")[:, None], sorted_indexes]
     sorted_retrievals = sorted_retrievals[:, 1:]
     max_precision = np.cumsum(np.ones_like(sorted_retrievals), axis=1)
     max_precision = np.minimum(
@@ -99,8 +99,8 @@ def _compute_fscore(sorted_retrievals, relevant_estimate):
 
 def _compute_roc(sorted_retrievals):
     # https://en.wikipedia.org/wiki/Receiver_operating_characteristic @ 22/3/2019
-    true_positives = sorted_retrievals.sum(axis=0).cumsum().astype("double")
-    false_positives = (1-sorted_retrievals).sum(axis=0).cumsum().astype("double")
+    true_positives = sorted_retrievals.sum(axis=0).cumsum().astype("float")
+    false_positives = (1-sorted_retrievals).sum(axis=0).cumsum().astype("float")
     relevant = np.ones_like(true_positives) * sorted_retrievals.sum()
     recalls = true_positives / relevant
     fallout = false_positives / (1-sorted_retrievals).sum()# FP+TN
