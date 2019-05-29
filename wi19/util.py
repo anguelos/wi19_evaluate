@@ -125,7 +125,7 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     print "Loading submission {} with groundtruth {} ... ".format(dm_fname, gt_fname),
     fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
 
-    id_class_tuples=[l.split(",") for l in open(gt_fname).read().strip().split("\n")]
+    id_class_tuples=[reversed(l.split(",")) for l in open(gt_fname).read().strip().split("\n")]
     id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
 
     sample_per_class=defaultdict(lambda:[])
@@ -147,16 +147,16 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     try:
         if any([len(line)!=2+len(str_table) for line in str_table]):
             raise ValueError() # we dont have 2 more columns labels+valid retrivals.
-        relevance_estimate = np.array([int(line[1]) for line in str_table],dtype="int64")
+        relevance_estimate = np.array([int(line[1]) for line in str_table],dtype="int32")
         #removing the relevant_estimate column if successfully parced
         str_table = [line[:1]+line[2:] for line in str_table]
     except ValueError:
         nb_samples=len(str_table)
-        relevance_estimate=np.array([max_item_per_class_count]*nb_samples,dtype="int64")
+        relevance_estimate=np.array([max_item_per_class_count]*nb_samples,dtype="int32")
 
     sample_ids=np.array([fname2sample(line[0]) for line in str_table])
     numerical_table=[[float(col) for col in line[1:]] for line in str_table]
-    numerical_table=np.array(numerical_table,dtype="double")
+    numerical_table=np.array(numerical_table,dtype="float")
     try:
         is_distance=validate_matrix_is_distance(numerical_table)
         if is_distance:
@@ -197,4 +197,4 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
 
     classes = np.array([id2class_dict[id] for id in sample_ids],dtype="int64")
     print " done."
-    return dm, relevance_estimate.astype("int64"), sample_ids, classes
+    return dm, relevance_estimate.astype("int32"), sample_ids, classes

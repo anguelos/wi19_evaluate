@@ -11,19 +11,25 @@ import datetime
 def clean_svg_path(p):
     return "./svg/{}".format(p.split("/")[-1])
 
+def clean_csv_path(p):
+    return "./csv/{}".format(p.split("/")[-1])
+
 def readable_name(name):
     return " ".join([n.capitalize() for n in name.split("_") if n.lower() != "team"])
 
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,roc_svg_path=None):
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
-    mAP, Fm, P, R, RoC = get_all_metrics(relevance_estimate, D, classes)
+    mAP, Fm, P, R, RoC, accuracy, recall_at = get_all_metrics(relevance_estimate, D, classes)
     res = {"date": time.ctime(os.path.getctime(submission_file))}
     res["timestamp"] = os.path.getctime(submission_file)
     res["map"] = mAP
     res["pr"] = P
     res["rec"] = R
     res["fm"] = Fm
+    res["acc"] = accuracy
+    #res[roc_svg_path]=
     if roc_svg_path is not None:
+        csv_path=roc_svg_path.replace("svg","csv")
         plt.clf()
         plt.plot(RoC["fallout"]*100,RoC["recall"]*100)
         plt.title("RoC")
@@ -32,6 +38,8 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
         plt.gcf().patch.set_alpha(0.0)
         plt.savefig(roc_svg_path)
         res["roc_svg"]=clean_svg_path(roc_svg_path)
+        open(csv_path).write(",".join([str(r) for r in recall_at]))
+        res["recall_csv"]=clean_csv_path(csv_path)
     else:
         res["roc_svg"] = "N/A"
     return res
@@ -131,4 +139,4 @@ def print_single_submission_report(submission_file,gt_fname,allow_similarity=Tru
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
     print("Submission created on {}".format(submission["date"]))
     print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
-    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %".format(submission["pr"],submission["rec"],submission["fm"],submission["map"]))
+    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %\nAcc.: {:5,3}".format(submission["pr"],submission["rec"],submission["fm"],submission["map"],submission["acc"]))

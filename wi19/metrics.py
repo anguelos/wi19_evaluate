@@ -126,8 +126,11 @@ def get_all_metrics(
     assert db_classes is None
     precision_at, recall_at, sorted_retrievals = _get_precision_recall_matrices(
         D, query_classes, remove_self_column=remove_self_column)
+    del D
+    accuracy = precision_at[:,0].mean()
     mAP = _compute_map(precision_at, sorted_retrievals)
+    del precision_at,recall_at,
     fscore, precision, recall = _compute_fscore(
         sorted_retrievals, relevant_estimate)
     roc = _compute_roc(sorted_retrievals)
-    return mAP, fscore, precision, recall, roc
+    return mAP, fscore, precision, recall, roc, accuracy, recall_at.mean(axis=0)
