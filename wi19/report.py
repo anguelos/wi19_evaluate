@@ -40,7 +40,7 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
         plt.savefig(roc_svg_path)
         res["roc_svg"]=clean_svg_path(roc_svg_path)
         sys.stderr.write("Saving csv:"+csv_path+"\n")
-        open(csv_path).write(",".join([str(r) for r in recall_at]))
+        open(csv_path,"w").write(",".join([str(r) for r in recall_at]))
         res["recall_csv"]=clean_csv_path(csv_path)
     else:
         res["roc_svg"] = "N/A"
