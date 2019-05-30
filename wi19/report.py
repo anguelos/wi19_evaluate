@@ -39,10 +39,12 @@ def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_m
         plt.gcf().patch.set_alpha(0.0)
         plt.savefig(roc_svg_path)
         res["roc_svg"]=clean_svg_path(roc_svg_path)
+        sys.stderr.write("Saving csv:"+csv_path+"\n")
         open(csv_path).write(",".join([str(r) for r in recall_at]))
         res["recall_csv"]=clean_csv_path(csv_path)
     else:
         res["roc_svg"] = "N/A"
+        sys.stderr.write("Not saving csv:" + csv_path + "\n")
     return res
 
 def calculate_submissions(submission_file_list,gt_fname,name=None,description_file=None,allow_similarity=True, allow_missing_samples=False,allow_non_existing_samples=False,svg_dir_path=None):
