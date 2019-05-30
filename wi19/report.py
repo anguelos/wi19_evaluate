@@ -140,4 +140,12 @@ def print_single_submission_report(submission_file,gt_fname,allow_similarity=Tru
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
     print("Submission created on {}".format(submission["date"]))
     print("Preview RoC in bash:\nfirefox {}\n".format(submission["roc_svg"]))
-    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-ScoremAP: {:5.3} %\nmAP: {:5.3} %\nAcc.: {:5.3}".format(submission["pr"],submission["rec"],submission["fm"],submission["map"],submission["acc"]))
+    print("Precision: {:5.3} %\nRecall: {:5.3} %\nF-Score mAP: {:5.3} %\nmAP: {:5.3} %\nAcc.: {:5.3}".format(submission["pr"],submission["rec"],submission["fm"],submission["map"],submission["acc"]))
+
+def print_single_submission_table(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=True,allow_non_existing_samples=True,roc_svg_path=""):
+    if roc_svg_path == "":
+        roc_svg_path = None
+    submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
+    fname2name=lambda x:" ".join(x.split("/")[-1].split(".")[0].split("_"))
+    print("Submission & partition & Precision & Recall & F-Score & mAP & Accuracy \\\\ \n {} & {} & {:5.3} \% & {:5.3} \% & {:5.3} \% & {:5.3} \% & {:5.3} \%".format(
+        fname2name(submission_file),fname2name(gt_fname),100*submission["pr"],100*submission["rec"],100*submission["fm"],100*submission["map"],100*submission["acc"]))
