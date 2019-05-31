@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import wi19
 import glob
 
 def create_makefile():
@@ -18,7 +17,5 @@ def create_makefile():
     return res
 
 
-
-params, help_str = wi19.get_arg_switches(params)
 
 open("Makefile","w").write(create_makefile())
