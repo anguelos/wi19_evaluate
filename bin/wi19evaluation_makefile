@@ -1,0 +1,24 @@
+#!/usr/bin/python
+
+import wi19
+import glob
+
+def create_makefile():
+    gt_files=sorted(glob.glob(gt_file_pattern_dir))
+    submission_files=sorted(glob.glob(submission_file_pattern_dir))
+    all_targets={}
+    for gt_file in gt_files:
+        for submission_file in submission_files:
+            target="./results/{}_{}.log".format(gt_file.split("/")[-1].split(".")[0],submission_file.split("/")[-1].split(".")[0])
+            cmd="{2} : {1} {0}\n\t./wi19_evaluate/bin/wi19evaluate -gt_csv={0} -submission_csv={1} > {2}".format(gt_file,submission_file,target)
+            all_targets[target]=cmd
+    res = "PYTHONPATH := ./wi19_evaluate/ \n export PYTHONPATH \n\n"
+    res+="\n\n".join(all_targets.values())
+    res+="\n\nall : "+" ".join(all_targets.keys())
+    return res
+
+
+
+params, help_str = wi19.get_arg_switches(params)
+
+open("Makefile","w").write(create_makefile())
