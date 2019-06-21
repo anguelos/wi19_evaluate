@@ -1,6 +1,4 @@
 import numpy as np
-from matplotlib import pyplot as plt
-
 
 def _get_d_plus_e(D):
     return D.astype("float")
@@ -127,11 +125,13 @@ def get_all_metrics(
     assert db_classes is None
     precision_at, recall_at, sorted_retrievals = _get_precision_recall_matrices(
         D, query_classes, remove_self_column=remove_self_column)
+    non_singleton_idx=sorted_retrievals.sum(axis=1)>0
+    print "Non singletons:", non_singleton_idx.mean()
     del D
-    accuracy = precision_at[:,0].mean()
-    mAP = _compute_map(precision_at, sorted_retrievals)
+    accuracy = precision_at[non_singleton_idx,0].mean()
+    mAP = _compute_map(precision_at[non_singleton_idx,:], sorted_retrievals[non_singleton_idx,:])
     del precision_at#,recall_at,
     fscore, precision, recall = _compute_fscore(
-        sorted_retrievals, relevant_estimate)
+        sorted_retrievals[non_singleton_idx,:], relevant_estimate[non_singleton_idx])
     roc = _compute_roc(sorted_retrievals)
-    return mAP, fscore, precision, recall, roc, accuracy, recall_at.mean(axis=0)
+    return mAP, fscore, precision, recall, roc, accuracy, recall_at[non_singleton_idx,:].mean(axis=0)

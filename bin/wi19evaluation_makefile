@@ -10,9 +10,10 @@ def create_makefile(gt_file_pattern_dir,submission_file_pattern_dir):
     for gt_file in gt_files:
         for submission_file in submission_files:
             target="./results/{}_{}.log".format(gt_file.split("/")[-1].split(".")[0],submission_file.split("/")[-1].split(".")[0])
-            cmd="{2} : {1} {0}\n\t./wi19_evaluate/bin/wi19evaluate -gt_csv={0} -submission_csv={1} > {2}".format(gt_file,submission_file,target)
+            target_roc="./svg/{}_{}.svg".format(gt_file.split("/")[-1].split(".")[0],submission_file.split("/")[-1].split(".")[0])
+            cmd="{2} : {1} {0}\n\tPYTHONPATH=./wi19_evaluate/ python ./wi19_evaluate/bin/wi19evaluate -gt_csv={0} -submission_csv={1} -roc_path={3} > {2}".format(gt_file,submission_file,target,target_roc)
             all_targets[target]=cmd
-    res = "PYTHONPATH := ./wi19_evaluate/ \n export PYTHONPATH \n\n"
+    res = "PYTHONPATH := ./wi19_evaluate/ \nexport PYTHONPATH \n.DELETE_ON_ERROR:\n\n"
     res+="\n\n".join(all_targets.values())
     res+="\n\nall : "+" ".join(all_targets.keys())
     return res
