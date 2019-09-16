@@ -15,7 +15,7 @@ def create_makefile(gt_file_pattern_dir,submission_file_pattern_dir):
             all_targets[target]=cmd
     res = "PYTHONPATH := ./wi19_evaluate/ \nexport PYTHONPATH \n.DELETE_ON_ERROR:\n\n"
     res+="\n\n".join(all_targets.values())
-    res+="\n\nall : "+" ".join(all_targets.keys())
+    res="all : "+" ".join(all_targets.keys())+"\n\n"+res
     return res
 
 
