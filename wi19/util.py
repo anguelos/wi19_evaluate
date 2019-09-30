@@ -1,6 +1,6 @@
-import json
 import os
 import glob
+import json
 import numpy as np
 import sys
 import re
@@ -125,16 +125,31 @@ def load_dm(dm_fname,gt_fname,allow_similarity=True,allow_missing_samples=False,
     print "Loading submission {} with groundtruth {} ... ".format(dm_fname, gt_fname),
     fname2sample=lambda x: os.path.basename(x.strip()).split(".")[0]
 
-    id_class_tuples=[reversed(l.split(",")) for l in open(gt_fname).read().strip().split("\n")]
-    id2class_dict = {fname2sample(k):int(v) for k,v in id_class_tuples}
+    id_class_tuples=[tuple(reversed(l.split(","))) for l in open(gt_fname).read().strip().split("\n")]
+    print "\n".join([str(tuple(l)) for l in id_class_tuples])
+    id2class_dict = {fname2sample(k): (v) for k, v in id_class_tuples}
+    print id2class_dict
+    id2class_dict = {fname2sample(k):int(v) for v,k in id_class_tuples}
 
     dm=[]
     fnames=[]
-    for line in open(dm_fname).readlines():
-        if(len(line.strip())>0):
-            line=line.split(",")
-            fnames.append(fname2sample(line[0]))
-            dm.append([float(col) for col in line[1:]])
+    if dm_fname.lower().endswith(".csv"):
+        for line in open(dm_fname).readlines():
+            if(len(line.strip())>0):
+                line=line.split(",")
+                fnames.append(fname2sample(line[0]))
+                dm.append([float(col) for col in line[1:]])
+    elif dm_fname.lower().endswith(".tsv"):
+        for line in open(dm_fname).readlines():
+            if(len(line.strip())>0):
+                line=line.split("\t")
+                fnames.append(fname2sample(line[0]))
+                dm.append([float(col) for col in line[1:]])
+    elif dm_fname.lower().endswith(".json"):
+        mat=json.load(open(dm_fname))
+        dm = [[float(col) for col in row[1:]] for row in mat]
+        fnames=[fname2sample(row[0]) for row in mat]
+
     dm=np.array(dm,"float")
     fnames=np.array(fnames)
     assert dm.shape[0]==dm.shape[1]

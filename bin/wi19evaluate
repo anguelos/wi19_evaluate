@@ -5,7 +5,7 @@ import wi19
 params = {
     "gt_csv": "./test_data/gt.csv",
     "submission_csv": "./test_data/dm.json",
-    "roc_path": "./svg/",
+    "roc_path": "",
     "html_path":""
 }
 
