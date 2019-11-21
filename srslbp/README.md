@@ -1,3 +1,9 @@
+This repository has the bilde submodule.
+Clone with recurcive submodules 
+bash```
+git clone --recurse-submodules .....
+```
+
 This code implements the paper 'Sparse Radial Sampling LBP for Writer Identification'
 
 https://arxiv.org/pdf/1504.06133.pdf
