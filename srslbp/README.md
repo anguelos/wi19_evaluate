@@ -37,3 +37,15 @@ Produce the submission:
 ```bash
 ./srslbp/srs_lbp.py -validation_csv=/tmp/features.csv -output=/tmp/submission.csv
 ```
+
+Making a sharded makefile for parallel execution:
+```python
+shard_csv=lambda x:"./features/piece{}.csv".format(x)
+def split_ds(filenames,shards):
+    res_makefile="all: "+" ".join([shard_csv(n) for n in range(shards)])
+    shard_sz=int(len(filenames)/(shards))+1
+    for n,shard_start in enumerate(range(0,len(filenames),shard_sz)):
+        res_makefile+="{0}:\n\t{2} -T otsu -r 1 2 3 4 5 6 7 8 9 10 11 12 -s bilinear -i {1} > {0}\n\n".format(shard_csv(n)," ".join(filenames[shard_start:shard_start+shard_sz]),"./wi19_evaluate/srslbp/bilde/src/lbpFeatures2")
+    return res_makefile
+open("Makefile","w").write(split_ds(filenames,1000))
+```
