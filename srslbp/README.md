@@ -1,6 +1,7 @@
 This repository has the bilde submodule.
 Clone with recurcive submodules 
-bash```
+
+```bash
 git clone --recurse-submodules .....
 ```
 
