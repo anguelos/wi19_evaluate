@@ -15,24 +15,25 @@ class LBPdifferential(torch.nn.Module):
 
     @staticmethod
     def get_simple_LBP(nb_samples, radius, variance=1, filter_size=15):
-        angles = np.linspace(0, 2 * np.pi, nb_samples + 1)[:-1]
-        filter_bank = np.zeros([8, 1, filter_size, filter_size])
+        angles = torch.linspace(0, 2 * np.pi, nb_samples + 1)[:-1]
+        filter_bank = torch.zeros([nb_samples, 1, filter_size, filter_size])
         filter_range = -(filter_size - 1) / 2, (filter_size - 1) / 2
-        for n in range(angles.size):
+        for n in range(nb_samples):
             filter_x = LBPdifferential.gaussian_filter(radius * np.cos(angles[n]), variance, filter_size, filter_range)
             filter_y = LBPdifferential.gaussian_filter(radius * np.sin(angles[n]), variance, filter_size, filter_range)
             filter = filter_x[None, :] * filter_y[:, None]
             filter_bank[n, 0, :, :] = filter / filter.sum()
-        W=torch.Tensor(filter_bank)
-        b = torch.zeros(nb_samples, dtype=torch.float)
+        #W=torch.Tensor(filter_bank)
+        W=filter_bank
+        b = torch.zeros(nb_samples, dtype=torch.float)-.01
         offsets_x = torch.zeros(nb_samples,dtype=torch.int32)
         offsets_y = torch.zeros(nb_samples, dtype=torch.int32)
         return W, b, None, None
 
 
-    def __init__(self,radius,nb_samples):
+    def __init__(self,radius,nb_samples,variance=1):
         super(LBPdifferential,self).__init__()
-        self.W,self.b,self.offsets_x,self.offsets_y=LBPdifferential.get_simple_LBP(nb_samples=nb_samples,radius=radius,filter_size=int(math.ceil(radius))*2+1   )
+        self.W,self.b,self.offsets_x,self.offsets_y=LBPdifferential.get_simple_LBP(nb_samples=nb_samples,radius=radius,filter_size=int(math.ceil(radius))*2+1, variance=variance)
 
     def forward(self,X):
         if offset_x is None and offset_y is None:
@@ -50,6 +51,18 @@ class LBPdifferential(torch.nn.Module):
         else:
             raise Exception("")
         return res
+
+
+
+class LBPAlphabetLayer(torch.nn.Module):
+    @staticmethod
+    #def create_alphabet_tensor():
+    def __init__(self):
+        super(LBPAlphabetLayer,self).__init__()
+
+
+
+
 
 
 
@@ -106,8 +119,8 @@ def plot_8_filters(activations,central_activation=None,save_fname=None):
 
 if __name__=="__main__":
     filter_size=31
-    variance=5
-    W,b,offset_x,offset_y=LBPdifferential.get_simple_LBP(8,radius=5, variance=variance,filter_size=filter_size)
+    variance=.3
+    W,b,offset_x,offset_y=LBPdifferential.get_simple_LBP(8,radius=5, variance=variance,filter_size=filter_size,variance=.3)
     #plt.imshow(W.view(-1,filter_size).numpy())
     #plt.show()
     image = torch.zeros(1,1,200,300)
