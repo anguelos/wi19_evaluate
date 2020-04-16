@@ -62,3 +62,15 @@ git  add docs/index.html docs/svg/*.svg
 git  commit -m "Auto Update"
 git  push
 ```
+
+## Acknowledgement:
+
+Development for this tool has been supported by the European project 211 "Modern access to historical sources" a Cross-border cooperation program
+Free State of Bavaria and the Czech Republic.
+
+
+<table><tr><td>
+<img src="./docs/eu_logo.png" height="74" width="160">
+</td><td>
+<img src="./docs/czeck_bavaria_logo.png" height="74" width="160">
+</td></tr><table>
