@@ -22,14 +22,19 @@ def readable_name(name):
 def calculate_submission(submission_file,gt_fname,allow_similarity=True, allow_missing_samples=True,allow_non_existing_samples=True,roc_svg_path=None):
     print("Before load_dm,allow_missing_samples=",allow_missing_samples)
     D, relevance_estimate, sample_ids, classes = load_dm(submission_file, gt_fname, allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples)
-    mAP, Fm, P, R, RoC, accuracy, recall_at = get_all_metrics(relevance_estimate, D, classes)
+    mAP, Fm, P, R, RoC, accuracy, recall_at, p1, p10,p100, all_AP = get_all_metrics(relevance_estimate, D, classes)
     res = {"date": time.ctime(os.path.getctime(submission_file))}
     res["timestamp"] = os.path.getctime(submission_file)
     res["map"] = mAP
+    print("TWO APs",mAP,all_AP.mean())
     res["pr"] = P
     res["rec"] = R
     res["fm"] = Fm
     res["acc"] = accuracy
+    res["all_AP"] = all_AP
+    res["p1"] = p1
+    res["p10"] = p10
+    res["p100"] = p100
     #print ("ROC SVG PATH:",roc_svg_path)
     #res[roc_svg_path]=
     if roc_svg_path is not None:
@@ -151,5 +156,21 @@ def print_single_submission_table(submission_file,gt_fname,allow_similarity=True
         roc_svg_path = None
     submission = calculate_submission(submission_file=submission_file,gt_fname=gt_fname,allow_similarity=allow_similarity, allow_missing_samples=allow_missing_samples,allow_non_existing_samples=allow_non_existing_samples,roc_svg_path=roc_svg_path)
     fname2name=lambda x:" ".join(x.split("/")[-1].split(".")[0].split("_"))
-    print("Submission & partition & Precision & Recall & F-Score & mAP & Accuracy \\\\ \n {} & {} & {:5.3} \% & {:5.3} \% & {:5.3} \% & {:5.3} \% & {:5.3} \%".format(
-        fname2name(submission_file),fname2name(gt_fname),100*submission["pr"],100*submission["rec"],100*submission["fm"],100*submission["map"],100*submission["acc"]))
+    print("Submission & partition & Precision & Recall & F-Score & mAP & Accuracy & P@10 & P@100")
+    row_str="{}\t{}\t{:5.3}\t{:5.3}\t{:5.3}\t{:5.3}\t{:5.3}\t{:5.3}\t{:5.3}\n"
+    res_str=row_str.format(fname2name(submission_file),fname2name(gt_fname),100*submission["pr"],100*submission["rec"],100*submission["fm"],
+                         100*submission["map"],100*submission["acc"], 100*submission["p10"].mean(),100*submission["p100"].mean())
+    print(res_str)
+    fin = open(submission_file)
+    open(gt_fname[:gt_fname.rfind("/")] + "/all_results.csv","a").write(res_str)
+    ap_file=submission_file.replace("dm","ap")
+    ap_file=gt_fname[:gt_fname.rfind("/")]+submission_file.replace("dm","ap")[ap_file.rfind("/"):]
+
+
+    fout = open(ap_file,"w")
+    n=0
+    for line in fin.readlines():
+        if len(line.strip()):
+            id=line.split(",")[0]
+            fout.write("{},{},{},{},{}\n".format(id,submission["all_AP"][n],submission["p1"][n],submission["p10"][n],submission["p100"][n]))
+        n+=1

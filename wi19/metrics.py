@@ -38,7 +38,6 @@ def get_map(D, classes):
             axis=1)[
             :,
             None])
-
     max_P_at = np.cumsum(
         sorted_retrievals,
         axis=1).astype("float") / max_precision
@@ -70,6 +69,7 @@ def _get_precision_recall_matrices(D, classes, remove_self_column=True):
     recall_at = np.cumsum(sorted_retrievals, axis=1).astype(
         "float") / np.maximum(relevant_count, 1)
     recall_at[relevant_count.reshape(-1) == 0, :] = 1
+
     return precision_at, recall_at, sorted_retrievals
 
 
@@ -81,6 +81,16 @@ def _compute_map(precision_at, sorted_retrievals):
     AP = (precision_at * sorted_retrievals).sum(axis=1) / \
         sorted_retrievals.sum(axis=1)
     return AP.mean()
+
+
+def _compute_all_ap(precision_at, sorted_retrievals):
+    # Removing singleton queries from mAP computation
+    valid_entries = sorted_retrievals.sum(axis=1) > 0
+    precision_at = precision_at[valid_entries, :]
+    sorted_retrievals = sorted_retrievals[valid_entries, :]
+    AP = (precision_at * sorted_retrievals).sum(axis=1) / \
+        sorted_retrievals.sum(axis=1)
+    return AP
 
 
 def _compute_fscore(sorted_retrievals, relevant_estimate):
@@ -110,7 +120,7 @@ def get_all_metrics(
         D,
         query_classes,
         remove_self_column=True,
-        db_classes=None):
+        db_classes=None, ids=None):
     """Computes all performance metrics.
 
     :param relevant_estimate: an np.array with an integer estimate of how many retrieved samples are relevant for every
@@ -130,8 +140,21 @@ def get_all_metrics(
     del D
     accuracy = precision_at[non_singleton_idx,0].mean()
     mAP = _compute_map(precision_at[non_singleton_idx,:], sorted_retrievals[non_singleton_idx,:])
+    all_AP = _compute_all_ap(precision_at[non_singleton_idx,:], sorted_retrievals[non_singleton_idx,:])
+
+    sorted_retrievals
+    sorted_retrievals.sum(axis=1)
+
+    max_precision = np.cumsum(np.ones_like(sorted_retrievals), axis=1)
+    max_precision = np.minimum(max_precision,sorted_retrievals.sum(axis=1)[:,None])
+    normalised_precision_at = np.cumsum(sorted_retrievals, axis=1).astype(
+        "float") / max_precision
+    p1 = normalised_precision_at[non_singleton_idx, 0]
+    p10 = normalised_precision_at[non_singleton_idx,9]
+    p100 = normalised_precision_at[non_singleton_idx,99]
+
     del precision_at#,recall_at,
     fscore, precision, recall = _compute_fscore(
         sorted_retrievals[non_singleton_idx,:], relevant_estimate[non_singleton_idx])
     roc = _compute_roc(sorted_retrievals)
-    return mAP, fscore, precision, recall, roc, accuracy, recall_at[non_singleton_idx,:].mean(axis=0)
+    return mAP, fscore, precision, recall, roc, accuracy, recall_at[non_singleton_idx,:].mean(axis=0),p1, p10,p100, all_AP
